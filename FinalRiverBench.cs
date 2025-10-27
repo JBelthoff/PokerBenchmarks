@@ -182,7 +182,7 @@ namespace PokerBenchmarks
         [Benchmark(Description = "Full 9-player evaluation + best-hand reconstruction (UI-ready output)")]
         public int EndToEnd_EvalEngine_IncludeBestHands()
         {
-            var (scores, ranks, bestIdx, bestHands) =
+            var (scores, ranks, bestHands) =
                 EvalEngine.EvaluateRiverNinePlayersArrays(_shuffledArray, includeBestHands: true);
 
             // Prevent dead-code elimination by folding results
@@ -191,7 +191,7 @@ namespace PokerBenchmarks
             {
                 acc ^= scores[i];
                 acc ^= ranks[i];
-                acc ^= bestIdx[i];
+                //acc ^= bestIdx[i];
                 acc ^= bestHands[i][0].Value; // touch UI hand data
             }
             return acc;
