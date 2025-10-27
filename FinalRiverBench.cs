@@ -40,6 +40,7 @@ namespace PokerBenchmarks
         // ---------- Deck / data ----------
         private List<Card> _orderedDeck = default!;
         private List<Card> _shuffled = default!;
+        private Card[] _shuffledArray = default!;
 
         /// <summary>
         /// Builds the in-memory deck and restores the chosen shuffled deal from the CardIds string.
@@ -50,6 +51,7 @@ namespace PokerBenchmarks
         {
             _orderedDeck = (await _deckService.RawDeckAsync()).ToList();
             _shuffled = RestoreShuffledFromIds(_orderedDeck, CardIds);
+            _shuffledArray = _shuffled.ToArray();
         }
 
         /// <summary>
@@ -60,7 +62,7 @@ namespace PokerBenchmarks
         [Benchmark(Description = "Full 9-player showdown: complete evaluation including setup and scoring")]
         public int EndToEnd_EvalEngine_9Players()
         {
-            var (scores, _, _, _) = EvalEngine.EvaluateRiverNinePlayers(_shuffled);
+            var (scores, _, _, _) = EvalEngine.EvaluateRiverNinePlayers(_shuffledArray);
             // Reduce to a scalar to avoid dead-code elimination
             int min = scores[0];
             for (int i = 1; i < 9; i++)
@@ -181,7 +183,7 @@ namespace PokerBenchmarks
         public int EndToEnd_EvalEngine_IncludeBestHands()
         {
             var (scores, ranks, bestIdx, bestHands) =
-                EvalEngine.EvaluateRiverNinePlayers(_shuffled, includeBestHands: true);
+                EvalEngine.EvaluateRiverNinePlayersArrays(_shuffledArray, includeBestHands: true);
 
             // Prevent dead-code elimination by folding results
             int acc = 0;
@@ -194,6 +196,36 @@ namespace PokerBenchmarks
             }
             return acc;
         }
+
+
+        /// <summary>
+        /// Fastest engine path: EvaluateRiverNinePlayersIdx(Card[], includeBestIndices=true)
+        /// Layman’s take: “Run the evaluator in its highest-speed mode,
+        /// returning only byte indices for each player’s best 5-card hand
+        /// (no Card objects, no lists, minimal allocations).”
+        /// </summary>
+        [Benchmark(Description = "Engine: EvaluateRiverNinePlayersIdx (indices-only, max throughput)")]
+        public int Engine_EvaluateRiverNinePlayersIdx()
+        {
+            var (scores, ranks, bestIdx, best5) =
+                EvalEngine.EvaluateRiverNinePlayersIdx(_shuffledArray, includeBestIndices: true);
+
+            // Fold results into a scalar to prevent dead-code elimination
+            int acc = 0;
+            for (int i = 0; i < 9; i++)
+            {
+                acc ^= scores[i];
+                acc ^= ranks[i];
+                acc ^= bestIdx[i];
+                if (best5.Length > i && best5[i] is { Length: > 0 })
+                    acc ^= best5[i][0];
+            }
+            return acc;
+        }
+
+
+
+
 
         /// <summary>
         /// 9-player river evaluation (values-only, best-of-21) optimized for raw throughput.
