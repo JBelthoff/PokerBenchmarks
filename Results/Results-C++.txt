@@ -1,0 +1,87 @@
+﻿=== 7-Card Poker Hand Evaluator Benchmark ===
+
+Warming up...
+
+=== SINGLE-THREADED 7-Card Test ===
+Single-thread: 0.9188s, 10.88M hands/sec
+Checksum: 40960877872
+
+--- 5M hands ---
+Generating 5000000 random 7-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 5000000
+  Elapsed time: 0.0319 seconds
+  Hands per second: 156682345
+  Million hands/sec: 156.68M
+  Nanoseconds per hand: 6.38 ns
+  Microseconds per hand: 0.01 us
+  Checksum (prevent optimization): 20485070457
+
+--- 10M hands ---
+Generating 10000000 random 7-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 10000000
+  Elapsed time: 0.0529 seconds
+  Hands per second: 188942339
+  Million hands/sec: 188.94M
+  Nanoseconds per hand: 5.29 ns
+  Microseconds per hand: 0.01 us
+  Checksum (prevent optimization): 40971729725
+
+--- 50M hands ---
+Generating 50000000 random 7-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 50000000
+  Elapsed time: 0.2686 seconds
+  Hands per second: 186169747
+  Million hands/sec: 186.17M
+  Nanoseconds per hand: 5.37 ns
+  Microseconds per hand: 0.01 us
+  Checksum (prevent optimization): 204775863673
+
+--- 100M hands ---
+Generating 100000000 random 7-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 100000000
+  Elapsed time: 0.5326 seconds
+  Hands per second: 187742023
+  Million hands/sec: 187.74M
+  Nanoseconds per hand: 5.33 ns
+  Microseconds per hand: 0.01 us
+  Checksum (prevent optimization): 409582225365
+
+
+=== Hand Distribution Check (100K hands) ===
+
+Hand type distribution:
+   Straight Flush:     19 ( 0.02%)
+   Four of a Kind:    162 ( 0.16%)
+       Full House:   2687 ( 2.69%)
+            Flush:   3101 ( 3.10%)
+         Straight:   4667 ( 4.67%)
+  Three of a Kind:   4976 ( 4.98%)
+         Two Pair:  23416 (23.42%)
+         One Pair:  43602 (43.60%)
+        High Card:  17370 (17.37%)
+
+Expected 7-card probabilities (for reference):
+  Straight Flush: ~0.03%
+  Four of a Kind: ~0.17%
+  Full House:     ~2.60%
+  Flush:          ~3.03%
+  Straight:       ~4.62%
+  Three of Kind:  ~4.83%
+  Two Pair:       ~23.5%
+  One Pair:       ~43.8%
+  High Card:      ~17.4%
+
+C:\Users\jbelthoff.AICITE\source\repos\PokerEvalMultiThread\x64\Release\Benchmark.exe (process 21200) exited with code 0 (0x0).
+Press any key to close this window . . .
