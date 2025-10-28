@@ -7,10 +7,10 @@ using poker.net.Services;  // StaticDeckService / SqlDeckService, PokerLib, Eval
 namespace PokerBenchmarks
 {
     /// <summary>
-    /// Human-readable benchmarks for the poker evaluator.
-    /// - “End-to-End” benchmarks simulate a full 9-player river showdown, including setup, scoring, and (optionally) building UI-ready best hands.
-    /// - “Engine-only” benchmarks isolate just the core math that picks each player’s best 5-card hand from 7 cards (21 combos), to show raw algorithm speed.
-    /// - The “values-only, zero-allocs” variant demonstrates maximum throughput by avoiding object allocations and using raw integer values on the stack.
+    /// Benchmarks the poker hand evaluator across realistic and optimized scenarios.
+    /// - “End-to-end” benchmarks run a full 9-player river showdown, including scoring and building UI-ready best hands.
+    /// - “Core engine” benchmarks isolate the math that picks each player’s best 5-card hand from 7 cards (21 combinations).
+    /// - The “values-only, zero-allocs” variant shows the engine’s maximum throughput using stack-based integer operations.
     /// </summary>
     [MemoryDiagnoser]
     
@@ -55,84 +55,10 @@ namespace PokerBenchmarks
         }
 
         /// <summary>
-        /// Full 9-player showdown: complete evaluation including setup and scoring.
-        /// Layman’s take: “Simulate a real 9-player river hand, evaluate everyone’s best 5-card hand, and decide who wins.”
-        /// Includes all typical overhead (data prep, scoring) you’d do in an app.
+        /// Benchmarks the core 7-card evaluation loop using raw integer values only.
+        /// This version avoids allocations and shows the maximum single-thread throughput.
         /// </summary>
-        [Benchmark(Description = "Full 9-player showdown: complete evaluation including setup and scoring")]
-        public int EndToEnd_EvalEngine_9Players()
-        {
-            var (scores, _, _, _) = EvalEngine.EvaluateRiverNinePlayers(_shuffledArray);
-            // Reduce to a scalar to avoid dead-code elimination
-            int min = scores[0];
-            for (int i = 1; i < 9; i++)
-                if (scores[i] < min) min = scores[i];
-            return min;
-        }
-
-        /// <summary>
-        /// Core evaluator: 9 players × 21 combos each (best 5 of 7 cards).
-        /// Layman’s take: “Ignore UI/output and just run the math: for each player, check all 21 ways to pick 5 from 7 and keep the best.”
-        /// This isolates the algorithm to show raw evaluator speed with minimal overhead.
-        /// </summary>
-        [Benchmark(Description = "Core evaluator: 9 players × 21 combos each (best 5 of 7 cards)")]
-        public int EngineOnly_SevenCardBestOf21_9Players()
-        {
-            // Community card VALUES once per benchmark op
-            var board = new[]
-            {
-                _shuffled[18].Value, _shuffled[19].Value, _shuffled[20].Value,
-                _shuffled[21].Value, _shuffled[22].Value
-            };
-
-            // Reusable 5-card buffer (Cards, since eval_5hand_fast_jb takes List<Card>)
-            var c0 = new Card(); var c1 = new Card(); var c2 = new Card(); var c3 = new Card(); var c4 = new Card();
-            var tmp5List = new List<Card>(5) { c0, c1, c2, c3, c4 };
-
-            // Flattened perm table: length 105 (21 rows × 5 indices)
-            var perm = PokerLib.Perm7Indices;
-
-            int acc = 0;
-
-            for (int p = 0; p < 9; p++)
-            {
-                ushort best = ushort.MaxValue;
-
-                // Build this player's seven VALUES
-                var sevenVals = new int[7]
-                {
-                    _shuffled[p].Value, _shuffled[p + 9].Value,
-                    board[0], board[1], board[2], board[3], board[4]
-                };
-
-                // 21 × choose-5 combinations via flattened perm table
-                for (int row = 0; row < 21; row++)
-                {
-                    int baseIdx = row * 5;
-
-                    c0.Value = sevenVals[perm[baseIdx + 0]];
-                    c1.Value = sevenVals[perm[baseIdx + 1]];
-                    c2.Value = sevenVals[perm[baseIdx + 2]];
-                    c3.Value = sevenVals[perm[baseIdx + 3]];
-                    c4.Value = sevenVals[perm[baseIdx + 4]];
-
-                    var v = PokerLib.eval_5hand_fast_jb(tmp5List);
-                    if (v < best) best = v;
-                }
-
-                acc ^= best;
-            }
-
-            return acc;
-        }
-
-
-        /// <summary>
-        /// Optimized core evaluator: values-only, zero allocations (max throughput).
-        /// Layman’s take: “The same core math as above, but cranked to max speed by using raw ints on the stack
-        /// and avoiding new objects. This shows the highest possible algorithm throughput.”
-        /// </summary>
-        [Benchmark(Description = "Optimized core evaluator: values-only, zero allocations (max throughput)")]
+        [Benchmark(Description = "Optimized core evaluator: (max throughput)")]
         public int EngineOnly_SevenCardBestOf21_9Players_ValuesOnly_NoAllocs()
         {
             // Board card VALUES once
@@ -175,11 +101,10 @@ namespace PokerBenchmarks
         }
 
         /// <summary>
-        /// Full 9-player evaluation + best-hand reconstruction (UI-ready output).
-        /// Layman’s take: “Like the full simulation, but also build and sort the actual 5 cards each winner used,
-        /// so it’s ready to display in the UI or logs. This includes the extra work of creating those card lists.”
+        /// Runs a full 9-player evaluation exactly like the web app does.
+        /// Includes building UI-ready best-hand arrays for each player.
         /// </summary>
-        [Benchmark(Description = "Full 9-player evaluation + best-hand reconstruction (UI-ready output)")]
+        [Benchmark(Description = "Full 9-player evaluation: What the webapp uses")]
         public int EndToEnd_EvalEngine_IncludeBestHands()
         {
             var (scores, ranks, bestHands) =
@@ -197,51 +122,16 @@ namespace PokerBenchmarks
             return acc;
         }
 
-
         /// <summary>
-        /// Fastest engine path: EvaluateRiverNinePlayersIdx(Card[], includeBestIndices=true)
-        /// Layman’s take: “Run the evaluator in its highest-speed mode,
-        /// returning only byte indices for each player’s best 5-card hand
-        /// (no Card objects, no lists, minimal allocations).”
+        /// Measures raw engine throughput across 9 players using Parallel.For batching.
+        /// Tests large workloads (N hands) to gauge multi-thread scalability.
         /// </summary>
-        [Benchmark(Description = "Engine: EvaluateRiverNinePlayersIdx (indices-only, max throughput)")]
-        public int Engine_EvaluateRiverNinePlayersIdx()
-        {
-            var (scores, ranks, bestIdx, best5) =
-                EvalEngine.EvaluateRiverNinePlayersIdx(_shuffledArray, includeBestIndices: true);
-
-            // Fold results into a scalar to prevent dead-code elimination
-            int acc = 0;
-            for (int i = 0; i < 9; i++)
-            {
-                acc ^= scores[i];
-                acc ^= ranks[i];
-                acc ^= bestIdx[i];
-                if (best5.Length > i && best5[i] is { Length: > 0 })
-                    acc ^= best5[i][0];
-            }
-            return acc;
-        }
-
-
-
-
-
-        /// <summary>
-        /// 9-player river evaluation (values-only, best-of-21) optimized for raw throughput.
-        /// Layman’s take: “Simulates nine players facing a shared five-card board, finding each best 5-card hand
-        /// using 21 possible combinations per player. Uses a batched Parallel.For loop for minimal scheduling overhead,
-        /// so it measures the engine’s pure evaluation speed rather than UI or allocation costs.”
-        /// </summary>
-        [Params(10_000_000)]
-        public int N;
-        
-        [Params(64)] // optional second throughput for comparison; try 32/64/128
-        public int Batch;
-
         [Benchmark(Description = "Throughput: Parallel.For batched (values-only)")]
         public int Parallel_Batched_ValuesOnly()
         {
+            const int N = 10_000_000;
+            const int Batch = 64;
+
             int b0 = _shuffled[18].Value, b1 = _shuffled[19].Value, b2 = _shuffled[20].Value,
                 b3 = _shuffled[21].Value, b4 = _shuffled[22].Value;
 
@@ -294,11 +184,8 @@ namespace PokerBenchmarks
             return global;
         }
 
-
-
         #region Helper
 
-            // ---------- deck restore from ID string ----------
         private static List<Card> RestoreShuffledFromIds(IReadOnlyList<Card> orderedDeck, string cardIds)
         {
             if (orderedDeck is null) throw new ArgumentNullException(nameof(orderedDeck));
@@ -327,130 +214,6 @@ namespace PokerBenchmarks
         }
 
         #endregion
+
     }
 }
-
-
-#region Old Code
-
-// Moved to CPlusPlus.cs
-//
-//[Params(10_000_000)]
-//public int N;
-
-//// CHAMPION throughput benchmark: minimal overhead, values-only, no allocations on hot path.
-//[Benchmark(Description = "Throughput: Parallel 9-player evals (values-only, flattened Perm7)")]
-//public int Parallel_Throughput_ValuesOnly()
-//{
-//    int b0 = _shuffled[18].Value, b1 = _shuffled[19].Value, b2 = _shuffled[20].Value,
-//        b3 = _shuffled[21].Value, b4 = _shuffled[22].Value;
-
-//    // Hoist once; give each worker a stable array (no Span capture issues).
-//    var perm = PokerLib.Perm7Indices.ToArray();
-
-//    int global = 0;
-//    Parallel.For(0, N,
-//        () => 0,
-//        (iter, _, local) =>
-//        {
-//            int sum = 0;
-//            for (int p = 0; p < 9; p++)
-//            {
-//                Span<int> sevenVals = stackalloc int[7];
-//                sevenVals[0] = _shuffled[p].Value;
-//                sevenVals[1] = _shuffled[p + 9].Value;
-//                sevenVals[2] = b0; sevenVals[3] = b1; sevenVals[4] = b2; sevenVals[5] = b3; sevenVals[6] = b4;
-
-//                ushort best = ushort.MaxValue;
-//                for (int row = 0; row < 21; row++)
-//                {
-//                    int i = row * 5;
-//                    ushort v = PokerLib.Eval5CardsFast(
-//                        sevenVals[perm[i + 0]],
-//                        sevenVals[perm[i + 1]],
-//                        sevenVals[perm[i + 2]],
-//                        sevenVals[perm[i + 3]],
-//                        sevenVals[perm[i + 4]]);
-//                    if (v < best) best = v;
-//                }
-//                sum += best;
-//            }
-//            return local + sum;
-//        },
-//        local => Interlocked.Add(ref global, local));
-//    return global;
-//}
-
-
-//[Benchmark(Description = "Micro: Eval5CardsFast tight loop")]
-//public int Micro_Eval5CardsFast()
-//{
-//    int acc = 0;
-//    var v = new[] { _shuffled[0].Value, _shuffled[1].Value, _shuffled[18].Value, _shuffled[19].Value, _shuffled[20].Value };
-//    for (int i = 0; i < 1_000_000; i++)
-//    {
-//        acc ^= PokerLib.Eval5CardsFast(v[(i + 0) % 5], v[(i + 1) % 5], v[(i + 2) % 5], v[(i + 3) % 5], v[(i + 4) % 5]);
-//    }
-//    return acc;
-//}
-
-
-//[Params(64)] // optional second throughput for comparison; try 32/64/128
-//public int Batch;
-
-//[Benchmark(Description = "Throughput: Parallel.For batched (values-only)")]
-//public int Parallel_Batched_ValuesOnly()
-//{
-//    int b0 = _shuffled[18].Value, b1 = _shuffled[19].Value, b2 = _shuffled[20].Value,
-//        b3 = _shuffled[21].Value, b4 = _shuffled[22].Value;
-
-//    // Capture an array (not a span) across the closure.
-//    var perm = PokerLib.Perm7Indices.ToArray();
-//    int groups = (N + Batch - 1) / Batch;
-
-//    int global = 0;
-
-//    Parallel.For(0, groups,
-//        () => 0,
-//        (g, _, local) =>
-//        {
-//            int start = g * Batch;
-//            int end = Math.Min(start + Batch, N);
-
-//            int sum = 0;
-//            for (int iter = start; iter < end; iter++)
-//            {
-//                for (int p = 0; p < 9; p++)
-//                {
-//                    Span<int> seven = stackalloc int[7];
-//                    seven[0] = _shuffled[p].Value;
-//                    seven[1] = _shuffled[p + 9].Value;
-//                    seven[2] = b0; seven[3] = b1; seven[4] = b2; seven[5] = b3; seven[6] = b4;
-
-//                    ushort best = ushort.MaxValue;
-
-//                    for (int row = 0; row < 21; row++)
-//                    {
-//                        int i = row * 5;
-//                        ushort v = PokerLib.Eval5CardsFast(
-//                            seven[perm[i + 0]],
-//                            seven[perm[i + 1]],
-//                            seven[perm[i + 2]],
-//                            seven[perm[i + 3]],
-//                            seven[perm[i + 4]]
-//                        );
-//                        if (v < best) best = v;
-//                    }
-
-//                    sum += best;
-//                }
-//            }
-
-//            return local + sum;
-//        },
-//        local => Interlocked.Add(ref global, local)
-//    );
-
-//    return global;
-//}
-#endregion
