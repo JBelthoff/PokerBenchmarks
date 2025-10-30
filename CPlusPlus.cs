@@ -27,7 +27,7 @@ namespace PokerBenchmarks
     public static class CPlusPlusBench
     {
         // ===== Configuration (match your C++ build) =====
-        private const int CARD_COUNT = 7; // set to 5 or 7
+        private static int CARD_COUNT = 7; // set via Run(cardCount)
 
         private static readonly (long Count, string Label)[] FiveCardConfigs = new[]
         {
@@ -68,8 +68,9 @@ namespace PokerBenchmarks
         [ThreadStatic] private static int[] _handBuffer;       // temp VALUES (length 7)
         [ThreadStatic] private static int[] _fiveWork;         // temp 5 for 5-card eval (if needed)
 
-        public static void Run()
+        public static void Run(int cardCount)
         {
+            CARD_COUNT = cardCount;
             EnsureDeck();
 
             Console.WriteLine($"=== {CARD_COUNT}-Card Poker Hand Evaluator Benchmark ===\n");
@@ -348,129 +349,5 @@ namespace PokerBenchmarks
             } while (Interlocked.CompareExchange(ref target, updated, initial) != initial);
             return initial - updated; // actual reserved
         }
-    }
-
-
-    
-    public static class Op9Bench
-    {
-        // N = number of 9-player river operations (each op does 189 five-card evals).
-        public static void Run(int N)
-        {
-            // Hoist a stable “board” (river state: 5 community cards) and perm table
-            var svc = new poker.net.Services.StaticDeckService();
-            var deck = svc.RawDeckAsync().GetAwaiter().GetResult(); // IEnumerable<Card>
-            var cards = deck.AsList(); // small helper; or ToList()
-                                       // shuffled layout like your FinalRiverBench: first 18 = 9×2 hole cards, next 5 = board
-                                       // For the demo we just pick any 5 board values consistently:
-            int b0 = cards[18].Value, b1 = cards[19].Value, b2 = cards[20].Value, b3 = cards[21].Value, b4 = cards[22].Value;
-
-            // Copy to array (avoid capturing Span in closures)
-            var perm = poker.net.Services.PokerLib.Perm7Indices.ToArray(); // 21*5 bytes
-
-            // Warmup: get TieredPGO hot
-            WarmUpOneIteration(b0, b1, b2, b3, b4, perm);
-
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-
-            int global = 0;
-            int procs = Environment.ProcessorCount;
-            System.Threading.Tasks.Parallel.For(0, N,
-                new ParallelOptions { MaxDegreeOfParallelism = procs },
-                () => 0,
-                (iter, _, local) =>
-                {
-                    int sum = 0;
-                    for (int p = 0; p < 9; p++)
-                    {
-                        Span<int> seven = stackalloc int[7];
-                        // 2 hole cards for seat p and p+9 (like FinalRiverBench layout)
-                        seven[0] = cards[p].Value;
-                        seven[1] = cards[p + 9].Value;
-                        seven[2] = b0; seven[3] = b1; seven[4] = b2; seven[5] = b3; seven[6] = b4;
-
-                        ushort best = ushort.MaxValue;
-                        // best-of-21 using values-only fast 5-card path
-                        for (int row = 0; row < 21; row++)
-                        {
-                            int i = row * 5;
-                            ushort v = poker.net.Services.PokerLib.Eval5CardsFast(
-                                seven[perm[i + 0]],
-                                seven[perm[i + 1]],
-                                seven[perm[i + 2]],
-                                seven[perm[i + 3]],
-                                seven[perm[i + 4]]);
-                            if (v < best) best = v;
-                        }
-                        sum += best;
-                    }
-                    return local + sum;
-                },
-                local => System.Threading.Interlocked.Add(ref global, local));
-
-            sw.Stop();
-
-            double seconds = sw.Elapsed.TotalSeconds;
-            double opsPerSec = N / seconds;
-            double fiveCardEvalsPerSec = opsPerSec * 189.0;
-
-            Console.WriteLine("=== 9-Player River (Values-Only) ===");
-            Console.WriteLine($"Operations (9-player): {N:n0}");
-            Console.WriteLine($"Elapsed: {seconds:0.000} s");
-            Console.WriteLine($"Ops/sec: {opsPerSec:0}");
-            Console.WriteLine($"Derived 5-card evals/sec: {fiveCardEvalsPerSec:0}  (ops/sec × 189)");
-            Console.WriteLine($"Million 5-card evals/sec: {fiveCardEvalsPerSec / 1_000_000.0:0.00}M");
-            Console.WriteLine($"Checksum-ish (prevent opt): {global}");
-        }
-
-        // Replace your WarmUpOneIteration with this:
-        private static void WarmUpOneIteration(int b0, int b1, int b2, int b3, int b4, byte[] perm)
-        {
-            var svc = new poker.net.Services.StaticDeckService();
-            var deck = svc.RawDeckAsync().GetAwaiter().GetResult();
-            var cards = deck.AsList();
-
-            // 10k is enough to warm TieredPGO without risking stack pressure
-            const int warm = 10_000;
-
-            int dummy = 0;
-            // Hoist stackalloc once at method scope, reuse in loops
-            Span<int> seven = stackalloc int[7];
-
-            for (int iter = 0; iter < warm; iter++)
-            {
-                for (int p = 0; p < 9; p++)
-                {
-                    seven[0] = cards[p].Value;
-                    seven[1] = cards[p + 9].Value;
-                    seven[2] = b0; seven[3] = b1; seven[4] = b2; seven[5] = b3; seven[6] = b4;
-
-                    ushort best = ushort.MaxValue;
-
-                    // best-of-21 values-only
-                    for (int row = 0; row < 21; row++)
-                    {
-                        int i = row * 5;
-                        ushort v = poker.net.Services.PokerLib.Eval5CardsFast(
-                            seven[perm[i + 0]],
-                            seven[perm[i + 1]],
-                            seven[perm[i + 2]],
-                            seven[perm[i + 3]],
-                            seven[perm[i + 4]]);
-                        if (v < best) best = v;
-                    }
-                    dummy += best;
-                }
-            }
-            System.GC.KeepAlive(dummy);
-        }
-
-
-        // small helper (avoid repeated ToList() generic cost in tight paths)
-    }
-    internal static class ListHelpers
-    {
-        public static System.Collections.Generic.List<poker.net.Models.Card> AsList(this System.Collections.Generic.IEnumerable<poker.net.Models.Card> src)
-            => src is System.Collections.Generic.List<poker.net.Models.Card> l ? l : new System.Collections.Generic.List<poker.net.Models.Card>(src);
     }
 }

@@ -10,10 +10,9 @@ namespace PokerBenchmarks
             BenchmarkRunner.Run<FinalRiverBench>();
 
             // C++  Compare
-            //CPlusPlusBench.Run();
-            
-            // Full 9 player table
-            //Op9Bench.Run(10_000_000);
+            //CPlusPlusBench.Run(5);
+            //Console.WriteLine("\n\n==============================================\n");
+            //CPlusPlusBench.Run(7);
 
         }
     }

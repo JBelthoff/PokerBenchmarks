@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Results\BenchmarkDotNet.Artifacts\**" />
+    <EmbeddedResource Remove="Results\BenchmarkDotNet.Artifacts\**" />
+    <None Remove="Results\BenchmarkDotNet.Artifacts\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.4" />
   </ItemGroup>
 

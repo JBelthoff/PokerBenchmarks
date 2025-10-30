@@ -1,10 +1,102 @@
-﻿=== 7-Card Poker Hand Evaluator Benchmark ===
+﻿=== 5-Card Poker Hand Evaluator Benchmark ===
+
+Warming up...
+
+=== SINGLE-THREADED 5-Card Test ===
+Single-thread: 0.0677s, 147.78M hands/sec
+Checksum: 56195659814
+
+--- 50M hands ---
+Generating 50000000 random 5-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 50000000
+  Elapsed time: 0.0187 seconds
+  Hands per second: 2680706420
+  Million hands/sec: 2680.71M
+  Nanoseconds per hand: 0.37 ns
+  Microseconds per hand: 0.00 us
+  Checksum (prevent optimization): 280939519081
+
+--- 100M hands ---
+Generating 100000000 random 5-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 100000000
+  Elapsed time: 0.0359 seconds
+  Hands per second: 2787013631
+  Million hands/sec: 2787.01M
+  Nanoseconds per hand: 0.36 ns
+  Microseconds per hand: 0.00 us
+  Checksum (prevent optimization): 561894060815
+
+--- 500M hands ---
+Generating 500000000 random 5-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 500000000
+  Elapsed time: 0.1851 seconds
+  Hands per second: 2701770957
+  Million hands/sec: 2701.77M
+  Nanoseconds per hand: 0.37 ns
+  Microseconds per hand: 0.00 us
+  Checksum (prevent optimization): 2809391452315
+
+--- 1B hands ---
+Generating 1000000000 random 5-card hands...
+Evaluating...
+
+Results:
+  Total hands evaluated: 1000000000
+  Elapsed time: 0.3784 seconds
+  Hands per second: 2642800417
+  Million hands/sec: 2642.80M
+  Nanoseconds per hand: 0.38 ns
+  Microseconds per hand: 0.00 us
+  Checksum (prevent optimization): 5618858408760
+
+
+=== Hand Distribution Check (100K hands) ===
+
+Hand type distribution:
+   Straight Flush:      3 ( 0.00%)
+   Four of a Kind:     19 ( 0.02%)
+       Full House:    156 ( 0.16%)
+            Flush:    176 ( 0.18%)
+         Straight:    385 ( 0.39%)
+  Three of a Kind:   2132 ( 2.13%)
+         Two Pair:   4761 ( 4.76%)
+         One Pair:  42444 (42.44%)
+        High Card:  49924 (49.92%)
+
+Expected 5-card probabilities (for reference):
+  Straight Flush: ~0.0015%
+  Four of a Kind: ~0.024%
+  Full House:     ~0.144%
+  Flush:          ~0.197%
+  Straight:       ~0.392%
+  Three of Kind:  ~2.11%
+  Two Pair:       ~4.75%
+  One Pair:       ~42.3%
+  High Card:      ~50.1%
+
+C:\Users\jbelthoff.AICITE\source\repos\PokerEvalMultiThread\x64\Release\Benchmark.exe (process 8776) exited with code 0 (0x0).
+Press any key to close this window . . .
+
+
+
+
+
+=== 7-Card Poker Hand Evaluator Benchmark ===
 
 Warming up...
 
 === SINGLE-THREADED 7-Card Test ===
-Single-thread: 0.9188s, 10.88M hands/sec
-Checksum: 40960877872
+Single-thread: 0.9185s, 10.89M hands/sec
+Checksum: 40956213082
 
 --- 5M hands ---
 Generating 5000000 random 7-card hands...
@@ -12,12 +104,12 @@ Evaluating...
 
 Results:
   Total hands evaluated: 5000000
-  Elapsed time: 0.0319 seconds
-  Hands per second: 156682345
-  Million hands/sec: 156.68M
-  Nanoseconds per hand: 6.38 ns
+  Elapsed time: 0.0318 seconds
+  Hands per second: 157345518
+  Million hands/sec: 157.35M
+  Nanoseconds per hand: 6.36 ns
   Microseconds per hand: 0.01 us
-  Checksum (prevent optimization): 20485070457
+  Checksum (prevent optimization): 20480335398
 
 --- 10M hands ---
 Generating 10000000 random 7-card hands...
@@ -25,12 +117,12 @@ Evaluating...
 
 Results:
   Total hands evaluated: 10000000
-  Elapsed time: 0.0529 seconds
-  Hands per second: 188942339
-  Million hands/sec: 188.94M
-  Nanoseconds per hand: 5.29 ns
+  Elapsed time: 0.0524 seconds
+  Hands per second: 190718858
+  Million hands/sec: 190.72M
+  Nanoseconds per hand: 5.24 ns
   Microseconds per hand: 0.01 us
-  Checksum (prevent optimization): 40971729725
+  Checksum (prevent optimization): 40970601478
 
 --- 50M hands ---
 Generating 50000000 random 7-card hands...
@@ -38,12 +130,12 @@ Evaluating...
 
 Results:
   Total hands evaluated: 50000000
-  Elapsed time: 0.2686 seconds
-  Hands per second: 186169747
-  Million hands/sec: 186.17M
-  Nanoseconds per hand: 5.37 ns
+  Elapsed time: 0.2651 seconds
+  Hands per second: 188601527
+  Million hands/sec: 188.60M
+  Nanoseconds per hand: 5.30 ns
   Microseconds per hand: 0.01 us
-  Checksum (prevent optimization): 204775863673
+  Checksum (prevent optimization): 204798746052
 
 --- 100M hands ---
 Generating 100000000 random 7-card hands...
@@ -51,26 +143,26 @@ Evaluating...
 
 Results:
   Total hands evaluated: 100000000
-  Elapsed time: 0.5326 seconds
-  Hands per second: 187742023
-  Million hands/sec: 187.74M
-  Nanoseconds per hand: 5.33 ns
+  Elapsed time: 0.5308 seconds
+  Hands per second: 188393882
+  Million hands/sec: 188.39M
+  Nanoseconds per hand: 5.31 ns
   Microseconds per hand: 0.01 us
-  Checksum (prevent optimization): 409582225365
+  Checksum (prevent optimization): 409584063178
 
 
 === Hand Distribution Check (100K hands) ===
 
 Hand type distribution:
-   Straight Flush:     19 ( 0.02%)
-   Four of a Kind:    162 ( 0.16%)
-       Full House:   2687 ( 2.69%)
-            Flush:   3101 ( 3.10%)
-         Straight:   4667 ( 4.67%)
-  Three of a Kind:   4976 ( 4.98%)
-         Two Pair:  23416 (23.42%)
-         One Pair:  43602 (43.60%)
-        High Card:  17370 (17.37%)
+   Straight Flush:     22 ( 0.02%)
+   Four of a Kind:    158 ( 0.16%)
+       Full House:   2606 ( 2.61%)
+            Flush:   3043 ( 3.04%)
+         Straight:   4596 ( 4.60%)
+  Three of a Kind:   4807 ( 4.81%)
+         Two Pair:  23441 (23.44%)
+         One Pair:  43897 (43.90%)
+        High Card:  17430 (17.43%)
 
 Expected 7-card probabilities (for reference):
   Straight Flush: ~0.03%
@@ -83,5 +175,9 @@ Expected 7-card probabilities (for reference):
   One Pair:       ~43.8%
   High Card:      ~17.4%
 
-C:\Users\jbelthoff.AICITE\source\repos\PokerEvalMultiThread\x64\Release\Benchmark.exe (process 21200) exited with code 0 (0x0).
+C:\Users\jbelthoff.AICITE\source\repos\PokerEvalMultiThread\x64\Release\Benchmark.exe (process 7792) exited with code 0 (0x0).
 Press any key to close this window . . .
+
+
+
+
