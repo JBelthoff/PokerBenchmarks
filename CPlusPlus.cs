@@ -57,9 +57,6 @@ namespace PokerBenchmarks
         private static volatile int _deckReady; // 0/1
 
         // Tables for fast 5-card eval in 7-card best-of-21
-        private static ReadOnlySpan<ushort> _flushes => PokerLib.Flushes;
-        private static ReadOnlySpan<ushort> _unique5 => PokerLib.Unique5;
-        private static ReadOnlySpan<ushort> _hashes => PokerLib.HashValues;
         private static ReadOnlySpan<byte> _perm7 => PokerLib.Perm7Indices; // flattened 21x5
 
         // Thread-local RNG (xorshift64*) + scratch buffers
@@ -230,7 +227,9 @@ namespace PokerBenchmarks
             if (n == 5)
             {
                 // Fast 5-card path
-                return PokerLib.Eval5(_handBuffer.AsSpan(0, 5));
+                // return PokerLib.Eval5(_handBuffer.AsSpan(0, 5));
+                return PokerLib.Eval5CardsFast(
+                    _handBuffer[0], _handBuffer[1], _handBuffer[2], _handBuffer[3], _handBuffer[4]);
             }
             else
             {
@@ -249,7 +248,7 @@ namespace PokerBenchmarks
                     int v3 = vals[perm[j + 3]];
                     int v4 = vals[perm[j + 4]];
 
-                    ushort score = PokerLib.Eval5With(_flushes, _unique5, _hashes, v0, v1, v2, v3, v4);
+                    ushort score = PokerLib.Eval5CardsFast(v0, v1, v2, v3, v4);
                     if (score < best) best = score;
                 }
                 return best;

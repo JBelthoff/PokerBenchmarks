@@ -164,7 +164,7 @@ namespace PokerBenchmarks
                             {
                                 int i = row * 5;
                                 ushort v = PokerLib.Eval5CardsFast(
-                                    seven[perm[i + 0]],
+                                    seven[perm[i + 0]], 
                                     seven[perm[i + 1]],
                                     seven[perm[i + 2]],
                                     seven[perm[i + 3]],
