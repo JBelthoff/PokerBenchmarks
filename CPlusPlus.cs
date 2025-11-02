@@ -198,7 +198,7 @@ namespace PokerBenchmarks
             for (int i = 0; i < count; i++)
             {
                 ushort v = EvaluateOneRandomHand();
-                int rank = PokerLib.HandRankJb(v);
+                int rank = PokerLib.HandRank(v);
                 if ((uint)rank < freq.Length) freq[rank]++;
             }
 
